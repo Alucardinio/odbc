@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexbrainman/odbc/api"
+	"github.com/Alucardinio/odbc/api"
 )
 
 var (
@@ -585,14 +585,16 @@ var typeTests = []typeTest{
 	{"select cast(-9223372036854775808 as bigint)", match(int64(-9223372036854775808))},
 	{"select cast(9223372036854775807 as bigint)", match(int64(9223372036854775807))},
 
-	// decimal, float, real
-	{"select cast(123 as decimal(5, 0))", match(float64(123))},
-	{"select cast(-123 as decimal(5, 0))", match(float64(-123))},
-	{"select cast(123.5 as decimal(5, 0))", match(float64(124))},
+	// decimal
+	{"select cast(123 as decimal(5, 0))", match([]byte("123"))},
+	{"select cast(-123 as decimal(5, 0))", match([]byte("-123"))},
+	{"select cast(123.5 as decimal(5, 0))", match([]byte("124"))},
 	{"select cast(NULL as decimal(5, 0))", match(nil)},
-	{"select cast(123.45 as decimal(5, 2))", match(123.45)},
-	{"select cast(-123.45 as decimal(5, 2))", match(-123.45)},
-	{"select cast(123.456 as decimal(5, 2))", match(123.46)},
+	{"select cast(123.45 as decimal(5, 2))", match([]byte("123.45"))},
+	{"select cast(123456789112345678.45 as numeric(21, 2))", match([]byte("123456789112345678.45"))},
+	{"select cast(-123.45 as decimal(5, 2))", match([]byte("-123.45"))},
+	{"select cast(123.456 as decimal(5, 2))", match([]byte("123.46"))},
+	// float, real
 	{"select cast(0.123456789 as float)", match(0.123456789)},
 	{"select cast(NULL as float)", match(nil)},
 	{"select cast(3.6666667461395264 as real)", match(3.6666667461395264)},
@@ -600,13 +602,13 @@ var typeTests = []typeTest{
 	{"select cast(1.2333333504e+10 as real)", match(1.2333333504e+10)},
 
 	// money
-	{"select cast(12 as money)", match(float64(12))},
-	{"select cast(-12 as money)", match(float64(-12))},
-	{"select cast(0.01 as money)", match(0.01)},
-	{"select cast(0.0123 as money)", match(0.0123)},
+	{"select cast(12 as money)", match([]byte("12.0000"))},
+	{"select cast(-12 as money)", match([]byte("-12.0000"))},
+	{"select cast(0.01 as money)", match([]byte(".0100"))},
+	{"select cast(0.0123 as money)", match([]byte(".0123"))},
 	{"select cast(NULL as money)", match(nil)},
-	{"select cast(1 as smallmoney)", match(float64(1))},
-	{"select cast(0.0123 as smallmoney)", match(0.0123)},
+	{"select cast(1 as smallmoney)", match([]byte("1.0000"))},
+	{"select cast(0.0123 as smallmoney)", match([]byte(".0123"))},
 	{"select cast(NULL as smallmoney)", match(nil)},
 
 	// strings
@@ -622,9 +624,9 @@ var typeTests = []typeTest{
 
 	// datetime, smalldatetime
 	{"select cast('20151225' as datetime)", match(time.Date(2015, 12, 25, 0, 0, 0, 0, time.Local))},
-	{"select cast('2007-05-08 12:35:29.123' as datetime)", match(time.Date(2007, 5, 8, 12, 35, 29, 123e6, time.Local))},
+	{"select convert(datetime, '2007-05-08 12:35:29.123', 21)", match(time.Date(2007, 5, 8, 12, 35, 29, 123e6, time.Local))},
 	{"select cast(NULL as datetime)", match(nil)},
-	{"select cast('2007-05-08 12:35:29.123' as smalldatetime)", match(time.Date(2007, 5, 8, 12, 35, 0, 0, time.Local))},
+	{"select convert(smalldatetime, '2007-05-08 12:35:29.123', 21)", match(time.Date(2007, 5, 8, 12, 35, 0, 0, time.Local))},
 
 	// uniqueidentifier
 	{"select cast('0e984725-c51c-4bf4-9960-e1c80e27aba0' as uniqueidentifier)", match("0e984725-c51c-4bf4-9960-e1c80e27aba0")},
