@@ -76,6 +76,17 @@ func (r *Rows) ColumnTypeDatabaseTypeName(index int) string {
 	return ""
 }
 
+// ColumnTypeNullable return nullable if drivers known
+func (r *Rows) ColumnTypeNullable(index int) (nullable, ok bool) {
+	switch x := r.os.Cols[index].(type) {
+	case *BindableColumn:
+		return cTypeNullable(x.Nullable)
+	case *NonBindableColumn:
+		return cTypeNullable(x.Nullable)
+	}
+	return false, false	
+}
+
 func cTypeString(ct api.SQLSMALLINT) string {
 	switch ct {
 	case api.SQL_C_CHAR:
@@ -114,4 +125,16 @@ func cTypeString(ct api.SQLSMALLINT) string {
 		return "SQL_C_GUID"
 	}
 	return ""
+}
+
+func cTypeNullable(nl api.SQLSMALLINT) (nullable, ok bool) {
+	switch nl {
+	case api.SQL_NO_NULLS:
+		return false, true
+	case api.SQL_NULLABLE:
+		return true, true
+	case api.SQL_NULLABLE_UNKNOWN:
+		return false, false
+	}
+	return false, false
 }

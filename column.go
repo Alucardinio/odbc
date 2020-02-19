@@ -39,24 +39,24 @@ type Column interface {
 	Value(h api.SQLHSTMT, idx int) (driver.Value, error)
 }
 
-func describeColumn(h api.SQLHSTMT, idx int, namebuf []uint16) (namelen int, sqltype api.SQLSMALLINT, size api.SQLULEN, ret api.SQLRETURN) {
-	var l, decimal, nullable api.SQLSMALLINT
+func describeColumn(h api.SQLHSTMT, idx int, namebuf []uint16) (namelen int, sqltype api.SQLSMALLINT, size api.SQLULEN, ret api.SQLRETURN, nullable api.SQLSMALLINT) {
+	var l, decimal api.SQLSMALLINT
 	ret = api.SQLDescribeCol(h, api.SQLUSMALLINT(idx+1),
 		(*api.SQLWCHAR)(unsafe.Pointer(&namebuf[0])),
 		api.SQLSMALLINT(len(namebuf)), &l,
 		&sqltype, &size, &decimal, &nullable)
-	return int(l), sqltype, size, ret
+	return int(l), sqltype, size, ret, nullable
 }
 
 // TODO(brainman): did not check for MS SQL timestamp
 
 func NewColumn(h api.SQLHSTMT, idx int) (Column, error) {
 	namebuf := make([]uint16, 150)
-	namelen, sqltype, size, ret := describeColumn(h, idx, namebuf)
+	namelen, sqltype, size, ret, nullable := describeColumn(h, idx, namebuf)
 	if ret == api.SQL_SUCCESS_WITH_INFO && namelen > len(namebuf) {
 		// try again with bigger buffer
 		namebuf = make([]uint16, namelen)
-		namelen, sqltype, size, ret = describeColumn(h, idx, namebuf)
+		namelen, sqltype, size, ret, nullable = describeColumn(h, idx, namebuf)
 	}
 	if IsError(ret) {
 		return nil, NewError("SQLDescribeCol", h)
@@ -66,8 +66,9 @@ func NewColumn(h api.SQLHSTMT, idx int) (Column, error) {
 		return nil, errors.New("Failed to allocate column name buffer")
 	}
 	b := &BaseColumn{
-		name:    api.UTF16ToString(namebuf[:namelen]),
-		SQLType: sqltype,
+		name:     api.UTF16ToString(namebuf[:namelen]),
+		SQLType:  sqltype,
+		Nullable: nullable,
 	}
 	switch sqltype {
 	case api.SQL_BIT:
@@ -114,9 +115,10 @@ func NewColumn(h api.SQLHSTMT, idx int) (Column, error) {
 
 // BaseColumn implements common column functionality.
 type BaseColumn struct {
-	name    string
-	SQLType api.SQLSMALLINT
-	CType   api.SQLSMALLINT
+	name     string
+	SQLType  api.SQLSMALLINT
+	CType    api.SQLSMALLINT
+	Nullable api.SQLSMALLINT
 }
 
 func (c *BaseColumn) Name() string {
